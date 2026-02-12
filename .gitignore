@@ -1,0 +1,6 @@
+home-organizer/data
+home-organizer/ui/node_modules
+home-organizer/ui/dist
+home-organizer/ui/.env
+home-organizer/api/node_modules
+home-organizer/api/.env
