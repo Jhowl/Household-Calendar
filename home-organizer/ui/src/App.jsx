@@ -92,6 +92,7 @@ function App() {
   const [editingDate, setEditingDate] = useState(null)
   const [editingStatus, setEditingStatus] = useState('open')
   const [peopleOpen, setPeopleOpen] = useState(false)
+  const [actionItem, setActionItem] = useState(null)
   const [personForm, setPersonForm] = useState({ name: '', color: '#F6C56B' })
   const [menuWeekStart, setMenuWeekStart] = useState(startOfWeek(new Date()))
   const [menuItems, setMenuItems] = useState(() => {
@@ -221,6 +222,10 @@ function App() {
       body: JSON.stringify({ taskId: item.taskId, date: item.date, status: nextStatus }),
     })
     await refreshMonths()
+  }
+
+  const handleOpenActions = (item) => {
+    setActionItem(item)
   }
 
   const handleDeletePerson = async (personId, name) => {
@@ -387,11 +392,11 @@ function App() {
                       {items.slice(0, 4).map((item) => (
                         <button
                           key={`${item.taskId}-${item.date}`}
-                          className={`chip ${item.status === 'done' ? 'done' : ''}`}
-                          style={{ '--chip': item.color || item.assigneeColor || '#F7C087' }}
-                          onClick={() => handleToggleStatus(item)}
-                          type="button"
-                        >
+                        className={`chip ${item.status === 'done' ? 'done' : ''}`}
+                        style={{ '--chip': item.color || item.assigneeColor || '#F7C087' }}
+                        onClick={() => handleOpenActions(item)}
+                        type="button"
+                      >
                           <span className="chip-title">
                             {item.assigneeColor && (
                               <span className="marker" style={{ '--marker': item.assigneeColor }} />
@@ -484,7 +489,7 @@ function App() {
                   key={`${item.taskId}-${item.date}`}
                   className="upcoming-item"
                   type="button"
-                  onClick={() => openEditModal(item)}
+                  onClick={() => handleOpenActions(item)}
                 >
                   <div>
                     <strong className="chip-title">
@@ -827,6 +832,39 @@ function App() {
               />
               <button className="ghost" type="submit">Add</button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {actionItem && (
+        <div className="modal-backdrop" onClick={() => setActionItem(null)}>
+          <div className="modal action-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{actionItem.title}</h2>
+              <button className="ghost" onClick={() => setActionItem(null)} type="button">Close</button>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="ghost"
+                type="button"
+                onClick={async () => {
+                  await handleToggleStatus(actionItem)
+                  setActionItem(null)
+                }}
+              >
+                {actionItem.status === 'done' ? 'Mark open' : 'Complete'}
+              </button>
+              <button
+                className="primary"
+                type="button"
+                onClick={async () => {
+                  await openEditModal(actionItem)
+                  setActionItem(null)
+                }}
+              >
+                Edit
+              </button>
+            </div>
           </div>
         </div>
       )}

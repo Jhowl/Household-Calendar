@@ -389,6 +389,10 @@
   gap: 16px;
 }
 
+.modal.action-modal {
+  width: min(420px, 92vw);
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
