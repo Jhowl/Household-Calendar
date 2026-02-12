@@ -56,6 +56,12 @@
   align-items: start;
 }
 
+.main-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 .calendar {
   background: var(--card);
   border-radius: 24px;
@@ -190,6 +196,91 @@
   border-radius: 20px;
   padding: 18px;
   box-shadow: var(--shadow);
+}
+
+.menu-planner {
+  background: var(--card);
+  border-radius: 24px;
+  padding: 20px 22px 24px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.menu-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.menu-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.menu-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.menu-row {
+  display: grid;
+  grid-template-columns: 110px repeat(7, minmax(120px, 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
+
+.menu-row.header span {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu-row.header em {
+  font-style: normal;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.meal-label {
+  text-transform: capitalize;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 10px 8px;
+}
+
+.menu-row input {
+  border: 1px solid rgba(15, 19, 24, 0.12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+}
+
+.menu-note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.menu-note textarea {
+  border: 1px solid rgba(15, 19, 24, 0.12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
 }
 
 .panel-card h2 {

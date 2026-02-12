@@ -22,6 +22,27 @@ const startOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1)
 
 const addMonths = (date, amount) => new Date(date.getFullYear(), date.getMonth() + amount, 1)
 
+const startOfWeek = (date) => {
+  const copy = new Date(date)
+  const day = copy.getDay()
+  const diff = (day + 6) % 7
+  copy.setDate(copy.getDate() - diff)
+  return new Date(copy.getFullYear(), copy.getMonth(), copy.getDate())
+}
+
+const addDays = (date, amount) => {
+  const copy = new Date(date)
+  copy.setDate(copy.getDate() + amount)
+  return copy
+}
+
+const formatWeekLabel = (start) => {
+  const end = addDays(start, 6)
+  const startLabel = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const endLabel = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return `${startLabel} - ${endLabel}`
+}
+
 const buildCalendarDays = (monthDate) => {
   const firstDay = startOfMonth(monthDate)
   const lastDay = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0)
@@ -72,6 +93,14 @@ function App() {
   const [editingStatus, setEditingStatus] = useState('open')
   const [peopleOpen, setPeopleOpen] = useState(false)
   const [personForm, setPersonForm] = useState({ name: '', color: '#F6C56B' })
+  const [menuWeekStart, setMenuWeekStart] = useState(startOfWeek(new Date()))
+  const [menuItems, setMenuItems] = useState(() => {
+    const raw = window.localStorage.getItem('menuWeekItems')
+    return raw ? JSON.parse(raw) : {}
+  })
+  const [menuNote, setMenuNote] = useState(() => {
+    return window.localStorage.getItem('menuWeekNote') || ''
+  })
 
   const refreshMonths = async () => {
     const year = currentMonth.getFullYear()
@@ -100,14 +129,30 @@ function App() {
 
   const calendarDays = useMemo(() => buildCalendarDays(currentMonth), [currentMonth])
 
+  const menuDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, index) => addDays(menuWeekStart, index))
+  }, [menuWeekStart])
+
   const occurrencesByDate = useMemo(() => {
+    const priorityRank = { high: 3, medium: 2, low: 1 }
     const map = new Map()
     monthData.occurrences.forEach((item) => {
       if (!map.has(item.date)) map.set(item.date, [])
       map.get(item.date).push(item)
     })
+    map.forEach((items) => {
+      items.sort((a, b) => (priorityRank[b.priority] || 0) - (priorityRank[a.priority] || 0))
+    })
     return map
   }, [monthData])
+
+  useEffect(() => {
+    window.localStorage.setItem('menuWeekItems', JSON.stringify(menuItems))
+  }, [menuItems])
+
+  useEffect(() => {
+    window.localStorage.setItem('menuWeekNote', menuNote)
+  }, [menuNote])
 
   const upcoming = useMemo(() => {
     const today = new Date()
@@ -269,6 +314,15 @@ function App() {
     await refreshMonths()
   }
 
+  const handleMenuChange = (date, key, value) => {
+    setMenuItems((prev) => {
+      const next = { ...prev }
+      const existing = next[date] || { breakfast: '', lunch: '', dinner: '' }
+      next[date] = { ...existing, [key]: value }
+      return next
+    })
+  }
+
   const handleDeleteTask = async () => {
     if (!editingTask) return
     const confirmed = window.confirm(`Delete chore "${editingTask.title}" entirely?`)
@@ -309,52 +363,116 @@ function App() {
       </header>
 
       <main className="dashboard">
-        <section className="calendar">
-          <div className="weekday-row">
-            {WEEKDAYS.map((label) => (
-              <span key={label}>{label}</span>
-            ))}
-          </div>
-          <div className="calendar-grid">
-            {calendarDays.map((day, index) => {
-              if (!day) {
-                return <div key={`empty-${index}`} className="day empty" />
-              }
-              const iso = toIsoDate(day)
-              const items = occurrencesByDate.get(iso) || []
-              return (
-                <div key={iso} className="day">
-                  <div className="day-header">
-                    <span>{day.getDate()}</span>
-                    {items.length > 0 && <em>{items.length}</em>}
+        <div className="main-column">
+          <section className="calendar">
+            <div className="weekday-row">
+              {WEEKDAYS.map((label) => (
+                <span key={label}>{label}</span>
+              ))}
+            </div>
+            <div className="calendar-grid">
+              {calendarDays.map((day, index) => {
+                if (!day) {
+                  return <div key={`empty-${index}`} className="day empty" />
+                }
+                const iso = toIsoDate(day)
+                const items = occurrencesByDate.get(iso) || []
+                return (
+                  <div key={iso} className="day">
+                    <div className="day-header">
+                      <span>{day.getDate()}</span>
+                      {items.length > 0 && <em>{items.length}</em>}
+                    </div>
+                    <div className="day-items">
+                      {items.slice(0, 4).map((item) => (
+                        <button
+                          key={`${item.taskId}-${item.date}`}
+                          className={`chip ${item.status === 'done' ? 'done' : ''}`}
+                          style={{ '--chip': item.color || item.assigneeColor || '#F7C087' }}
+                          onClick={() => handleToggleStatus(item)}
+                          type="button"
+                        >
+                          <span className="chip-title">
+                            {item.assigneeColor && (
+                              <span className="marker" style={{ '--marker': item.assigneeColor }} />
+                            )}
+                            {item.title}
+                          </span>
+                        </button>
+                      ))}
+                      {items.length > 4 && (
+                        <div className="chip more">+{items.length - 4} more</div>
+                      )}
+                    </div>
                   </div>
-                  <div className="day-items">
-                    {items.slice(0, 4).map((item) => (
-                      <button
-                        key={`${item.taskId}-${item.date}`}
-                        className={`chip ${item.status === 'done' ? 'done' : ''}`}
-                        style={{ '--chip': item.color || item.assigneeColor || '#F7C087' }}
-                        onClick={() => handleToggleStatus(item)}
-                        type="button"
-                      >
-                        <span className="chip-title">
-                          {item.assigneeColor && (
-                            <span className="marker" style={{ '--marker': item.assigneeColor }} />
-                          )}
-                          {item.title}
-                        </span>
-                      </button>
-                    ))}
-                    {items.length > 4 && (
-                      <div className="chip more">+{items.length - 4} more</div>
-                    )}
-                  </div>
+                )
+              })}
+            </div>
+            {isLoading && <div className="loading">Loading month…</div>}
+          </section>
+
+          <section className="menu-planner">
+            <div className="menu-header">
+              <div>
+                <p className="eyebrow">Cooking Plan</p>
+                <h2>Weekly Menu + Diet</h2>
+                <p className="subtitle">Self organize your meals for the week.</p>
+              </div>
+              <div className="menu-actions">
+                <button className="ghost" onClick={() => setMenuWeekStart(startOfWeek(new Date()))}>
+                  This week
+                </button>
+                <div className="month-nav">
+                  <button className="ghost" onClick={() => setMenuWeekStart(addDays(menuWeekStart, -7))}>
+                    Prev
+                  </button>
+                  <span>{formatWeekLabel(menuWeekStart)}</span>
+                  <button className="ghost" onClick={() => setMenuWeekStart(addDays(menuWeekStart, 7))}>
+                    Next
+                  </button>
                 </div>
-              )
-            })}
-          </div>
-          {isLoading && <div className="loading">Loading month…</div>}
-        </section>
+              </div>
+            </div>
+            <div className="menu-grid">
+              <div className="menu-row header">
+                <span />
+                {menuDays.map((day) => (
+                  <span key={toIsoDate(day)}>
+                    {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                    <em>{day.getDate()}</em>
+                  </span>
+                ))}
+              </div>
+              {['breakfast', 'lunch', 'dinner'].map((meal) => (
+                <div key={meal} className="menu-row">
+                  <span className="meal-label">{meal}</span>
+                  {menuDays.map((day) => {
+                    const iso = toIsoDate(day)
+                    const value = menuItems[iso]?.[meal] || ''
+                    return (
+                      <input
+                        key={`${iso}-${meal}`}
+                        type="text"
+                        placeholder="Add item"
+                        value={value}
+                        onChange={(event) => handleMenuChange(iso, meal, event.target.value)}
+                      />
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+            <label className="menu-note">
+              Weekly focus
+              <textarea
+                rows={3}
+                value={menuNote}
+                onChange={(event) => setMenuNote(event.target.value)}
+                placeholder="Nutrition goals, prep notes, or grocery reminders"
+              />
+            </label>
+          </section>
+        </div>
 
         <aside className="side-panel">
           <div className="panel-card">
